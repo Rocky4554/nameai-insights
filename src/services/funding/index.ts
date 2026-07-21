@@ -4,8 +4,11 @@ import { techCrunchFetcher } from "./techcrunch";
 import { ventureBeatFetcher } from "./venturebeat";
 import { googleNewsFetcher } from "./google-news";
 
-// PredictLeads first (structured, credit-budgeted, may return [] if unconfigured
-// or out of monthly credits); RSS fetchers always run regardless of its outcome.
+// RSS fetchers (TechCrunch/VentureBeat/Google News) are the real discovery
+// sources — see docs/PLAN.md § 3.4 for why. PredictLeads is verified against
+// a live call but has no date filter and no industry tag on its financing_events
+// endpoint, so it usually returns [] for a specific date; kept in the list
+// (credit-budgeted) for whatever it does happen to catch, not relied on.
 const fetchers: FundingFetcher[] = [
   predictLeadsFetcher,
   techCrunchFetcher,
