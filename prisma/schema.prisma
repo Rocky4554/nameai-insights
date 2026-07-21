@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ArticleType {
+  DOMAIN_SALES
+  FUNDING
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Article {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  type        ArticleType
+  reportDate  DateTime      @db.Date // the day the report covers
+  summary     String?
+  contentMd   String?       @db.Text // markdown, rendered at read time
+  coverImage  String?
+  status      ArticleStatus @default(DRAFT)
+  metrics     Json? // { totalVolume, avgPrice, saleCount, topSale, ... }
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  domainSales   DomainSale[]
+  fundingEvents FundingEvent[]
+
+  @@unique([type, reportDate]) // one report per type per day
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([type, publishedAt(sort: Desc)])
+  @@map("articles")
+}
+
+model DomainSale {
+  id        String   @id @default(cuid())
+  articleId String? // nullable on purpose — raw data outlives any single article
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  domain      String
+  tld         String // "ai" — lets us filter/expand later
+  price       Decimal  @db.Decimal(14, 2)
+  currency    String   @default("USD")
+  priceUsd    Decimal  @db.Decimal(14, 2) // normalized for sorting/aggregates
+  saleDate    DateTime @db.Date
+  reportDate  DateTime @db.Date
+  marketplace String?
+  source      String // fetcher id, e.g. "namebio-auctionhacker"
+  sourceUrl   String?
+  raw         Json? // untouched payload, for reprocessing
+  createdAt   DateTime @default(now())
+
+  @@unique([domain, saleDate, marketplace]) // idempotent upsert key
+  @@index([reportDate, priceUsd(sort: Desc)])
+  @@index([saleDate(sort: Desc)])
+  @@map("domain_sales")
+}
+
+model FundingEvent {
+  id        String   @id @default(cuid())
+  articleId String?
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  company          String
+  companySlug      String // normalized, for dedupe/grouping
+  amount           Decimal? @db.Decimal(16, 2)
+  currency         String   @default("USD")
+  amountUsd        Decimal? @db.Decimal(16, 2)
+  round            String? // "Seed" | "Series A" | ...
+  investors        String[] // Postgres text[]
+  leadInvestor     String?
+  country          String?
+  announcementDate DateTime @db.Date
+  reportDate       DateTime @db.Date
+  source           String // "predictleads" | "techcrunch" | "venturebeat" | "google-news"
+  sourceUrl        String   @unique // dedupe key across feeds
+  headline         String?
+  raw              Json?
+  createdAt        DateTime @default(now())
+
+  @@index([reportDate, amountUsd(sort: Desc)])
+  @@index([companySlug, announcementDate])
+  @@map("funding_events")
+}
+
+model IngestRun {
+  id         String    @id @default(cuid())
+  source     String
+  status     String // running | success | failed
+  itemsFound Int       @default(0)
+  itemsSaved Int       @default(0)
+  error      String?   @db.Text
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([source, startedAt(sort: Desc)])
+  @@map("ingest_runs")
+}
+
+model ApiUsage {
+  id          String   @id @default(cuid())
+  provider    String // "predictleads"
+  period      String // "2026-07" — calendar month, matches billing reset
+  creditsUsed Int      @default(0)
+  creditsCap  Int // 100 on PredictLeads' free tier
+  updatedAt   DateTime @updatedAt
+
+  @@unique([provider, period])
+  @@map("api_usage")
+}
