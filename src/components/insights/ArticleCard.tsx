@@ -1,12 +1,12 @@
 import Link from "next/link";
-import type { Article } from "@/generated/prisma/client";
+import type { PayloadArticle } from "@/lib/payload-client";
 
-const TYPE_LABEL: Record<Article["type"], string> = {
-  DOMAIN_SALES: "Domain Sales",
-  FUNDING: "Funding",
+const TYPE_LABEL: Record<PayloadArticle["type"], string> = {
+  "domain-sales": "Domain Sales",
+  funding: "Funding",
 };
 
-export function ArticleCard({ article }: { article: Article }) {
+export function ArticleCard({ article }: { article: PayloadArticle }) {
   return (
     <Link
       href={`/insights/${article.slug}`}
@@ -22,7 +22,7 @@ export function ArticleCard({ article }: { article: Article }) {
         </p>
       )}
       {article.publishedAt && (
-        <time className="mt-3 block text-xs text-neutral-400" dateTime={article.publishedAt.toISOString()}>
+        <time className="mt-3 block text-xs text-neutral-400" dateTime={article.publishedAt}>
           {new Date(article.publishedAt).toLocaleDateString("en-US", {
             month: "long",
             day: "numeric",

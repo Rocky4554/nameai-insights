@@ -101,16 +101,3 @@ export async function getFundingStats(reportDate: Date) {
   };
 }
 
-export function getFundingForArticle(articleId: string) {
-  return prisma.fundingEvent.findMany({
-    where: { articleId },
-    orderBy: { amountUsd: "desc" },
-  });
-}
-
-export function linkFundingToArticle(reportDate: Date, articleId: string) {
-  return prisma.fundingEvent.updateMany({
-    where: { reportDate },
-    data: { articleId },
-  });
-}

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { getArticleBySlug } from "@/db/queries/articles";
+import { getPublishedArticleBySlug } from "@/lib/payload-client";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const article = await getArticleBySlug(slug);
+  const article = await getPublishedArticleBySlug(slug);
 
-  if (!article || article.status !== "PUBLISHED") {
+  if (!article) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

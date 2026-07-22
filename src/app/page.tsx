@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { getLatestByType, getRecentPublishedArticles } from "@/db/queries/articles";
+import { getLatestByType, getRecentPublishedArticles } from "@/lib/payload-client";
 import { ArticleCard } from "@/components/insights/ArticleCard";
 import { StatTile } from "@/components/insights/StatTile";
 import { formatUsd } from "@/lib/format";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 interface DomainSalesMetrics {
   count: number;
@@ -22,8 +22,8 @@ interface FundingMetrics {
 
 export default async function HomePage() {
   const [latestSales, latestFunding, recent] = await Promise.all([
-    getLatestByType("DOMAIN_SALES"),
-    getLatestByType("FUNDING"),
+    getLatestByType("domain-sales"),
+    getLatestByType("funding"),
     getRecentPublishedArticles(6),
   ]);
 

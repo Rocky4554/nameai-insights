@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Metadata } from "next";
-import { getArticleBySlug } from "@/db/queries/articles";
-import { getSalesForArticle } from "@/db/queries/domain-sales";
+import { getPublishedArticleBySlug } from "@/lib/payload-client";
+import { getSalesByReportDate } from "@/db/queries/domain-sales";
 import { getResolvedFundingByReportDate } from "@/db/queries/funding";
 import { SalesTable } from "@/components/insights/SalesTable";
 import { FundingTable } from "@/components/insights/FundingTable";
@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: Promise<PageParams>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = await getArticleBySlug(slug);
+  const article = await getPublishedArticleBySlug(slug);
   if (!article) return {};
 
   return {
@@ -32,25 +32,26 @@ export async function generateMetadata({
 
 export default async function ArticlePage({ params }: { params: Promise<PageParams> }) {
   const { slug } = await params;
-  const article = await getArticleBySlug(slug);
+  const article = await getPublishedArticleBySlug(slug);
 
-  if (!article || article.status !== "PUBLISHED") {
+  if (!article) {
     notFound();
   }
 
+  const reportDate = new Date(article.reportDate);
   const rawData =
-    article.type === "DOMAIN_SALES"
-      ? await getSalesForArticle(article.id)
-      : await getResolvedFundingByReportDate(article.reportDate);
+    article.type === "domain-sales"
+      ? await getSalesByReportDate(reportDate)
+      : await getResolvedFundingByReportDate(reportDate);
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
       <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-        {article.type === "DOMAIN_SALES" ? "Domain Sales" : "Funding"}
+        {article.type === "domain-sales" ? "Domain Sales" : "Funding"}
       </span>
       <h1 className="mt-1 text-3xl font-bold tracking-tight">{article.title}</h1>
       {article.publishedAt && (
-        <time className="mt-2 block text-sm text-neutral-500" dateTime={article.publishedAt.toISOString()}>
+        <time className="mt-2 block text-sm text-neutral-500" dateTime={article.publishedAt}>
           {new Date(article.publishedAt).toLocaleDateString("en-US", {
             month: "long",
             day: "numeric",
@@ -74,8 +75,8 @@ export default async function ArticlePage({ params }: { params: Promise<PagePara
           Raw Data
         </h2>
         <div className="mt-3">
-          {article.type === "DOMAIN_SALES" ? (
-            <SalesTable sales={rawData as Awaited<ReturnType<typeof getSalesForArticle>>} />
+          {article.type === "domain-sales" ? (
+            <SalesTable sales={rawData as Awaited<ReturnType<typeof getSalesByReportDate>>} />
           ) : (
             <FundingTable events={rawData as Awaited<ReturnType<typeof getResolvedFundingByReportDate>>} />
           )}

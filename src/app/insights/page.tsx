@@ -1,15 +1,11 @@
 import Link from "next/link";
-import { getPublishedArticles } from "@/db/queries/articles";
+import { getPublishedArticles, type ArticleType } from "@/lib/payload-client";
 import { ArticleCard } from "@/components/insights/ArticleCard";
 import { TypeFilter } from "@/components/insights/TypeFilter";
-import type { ArticleType } from "@/generated/prisma/client";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
-const TYPE_MAP: Record<string, ArticleType> = {
-  "domain-sales": "DOMAIN_SALES",
-  funding: "FUNDING",
-};
+const VALID_TYPES: ArticleType[] = ["domain-sales", "funding"];
 
 const PAGE_SIZE = 12;
 
@@ -19,7 +15,7 @@ export default async function InsightsPage({
   searchParams: Promise<{ type?: string; page?: string }>;
 }) {
   const { type: typeParam, page: pageParam } = await searchParams;
-  const type = typeParam ? TYPE_MAP[typeParam] : undefined;
+  const type = typeParam && VALID_TYPES.includes(typeParam as ArticleType) ? (typeParam as ArticleType) : undefined;
   const page = pageParam ? Math.max(1, Number(pageParam) || 1) : 1;
 
   const articles = await getPublishedArticles({ type, page, pageSize: PAGE_SIZE });

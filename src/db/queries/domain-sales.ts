@@ -73,20 +73,6 @@ export async function getSalesStats(reportDate: Date) {
   };
 }
 
-export function getSalesForArticle(articleId: string) {
-  return prisma.domainSale.findMany({
-    where: { articleId },
-    orderBy: { priceUsd: "desc" },
-  });
-}
-
-export function linkSalesToArticle(reportDate: Date, articleId: string) {
-  return prisma.domainSale.updateMany({
-    where: { reportDate },
-    data: { articleId },
-  });
-}
-
 export function getRecentSales(limit = 10) {
   return prisma.domainSale.findMany({
     orderBy: { saleDate: "desc" },

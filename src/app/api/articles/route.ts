@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getPublishedArticles } from "@/db/queries/articles";
-import type { ArticleType } from "@/generated/prisma/client";
+import { getPublishedArticles } from "@/lib/payload-client";
 
 export const dynamic = "force-dynamic";
-
-const TYPE_MAP: Record<string, ArticleType> = {
-  "domain-sales": "DOMAIN_SALES",
-  funding: "FUNDING",
-};
 
 const QuerySchema = z.object({
   type: z.enum(["domain-sales", "funding"]).optional(),
@@ -23,11 +17,7 @@ export async function GET(request: NextRequest) {
   }
   const { type, page, limit } = parsed.data;
 
-  const articles = await getPublishedArticles({
-    type: type ? TYPE_MAP[type] : undefined,
-    page,
-    pageSize: limit,
-  });
+  const articles = await getPublishedArticles({ type, page, pageSize: limit });
 
   return NextResponse.json({ articles });
 }

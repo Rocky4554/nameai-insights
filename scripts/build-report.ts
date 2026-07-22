@@ -1,10 +1,7 @@
-import { prisma } from "@/db/client";
 import { buildDomainSalesReport } from "@/reports/domain-sales-report";
 import { buildFundingReport } from "@/reports/funding-report";
-import { upsertDraftArticle } from "@/db/queries/articles";
-import { linkSalesToArticle } from "@/db/queries/domain-sales";
-import { linkFundingToArticle } from "@/db/queries/funding";
-import type { Prisma } from "@/generated/prisma/client";
+import { upsertDraftArticle } from "@/lib/payload-client";
+import { format } from "date-fns";
 
 /** Usage: tsx scripts/build-report.ts --type=domain-sales|funding --date=YYYY-MM-DD */
 
@@ -33,26 +30,18 @@ async function main() {
   const article = await upsertDraftArticle({
     slug: built.slug,
     title: built.title,
-    type: type === "domain-sales" ? "DOMAIN_SALES" : "FUNDING",
-    reportDate: date,
+    type,
+    reportDate: format(date, "yyyy-MM-dd"),
     summary: built.summary,
     contentMd: built.markdown,
-    metrics: built.metrics as Prisma.InputJsonValue,
+    metrics: built.metrics,
   });
 
-  if (type === "domain-sales") {
-    await linkSalesToArticle(date, article.id);
-  } else {
-    await linkFundingToArticle(date, article.id);
-  }
-
-  console.log(`Draft article created: ${article.slug} (id: ${article.id})`);
-  console.log(`Edit the summary in the DB, then flip status to PUBLISHED.`);
+  console.log(`Draft article created in Payload: ${article.slug} (id: ${article.id})`);
+  console.log(`Edit the summary in the CMS admin, then publish it there.`);
 }
 
-main()
-  .catch((err) => {
-    console.error(err);
-    process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});
