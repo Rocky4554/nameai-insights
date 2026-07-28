@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const NAV = [
@@ -15,13 +16,16 @@ export function SiteHeader({
   return (
     <header className="border-b border-zinc-200 bg-white">
       <div className="flex items-center gap-3 px-4 py-3 sm:h-15 sm:gap-8 sm:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center bg-green-700">
-            <span className="h-2.5 w-2.5 rounded-full bg-sage-200" />
-          </span>
-          <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-green-700">
-            name<span className="font-normal text-zinc-600">.ai</span>
-          </span>
+        <Link href="/" className="flex shrink-0 items-center" aria-label="name.ai home">
+          {/* Same asset the main name.ai app serves at /nameai.png. */}
+          <Image
+            src="/nameai.png"
+            alt="name.ai"
+            width={814}
+            height={161}
+            priority
+            className="h-6 w-auto sm:h-7"
+          />
         </Link>
 
         <nav className="flex min-w-0 flex-1 overflow-x-auto no-scrollbar">
