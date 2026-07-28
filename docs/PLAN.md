@@ -421,14 +421,15 @@ All read-only in Phase 1: `GET /api/articles`, `GET /api/articles/[slug]`, `GET 
 
 ## 4. Phase 2 — LLM-generated reports
 
-Keep the deterministic builder — it produces the *facts block* (metrics + top-10 table). The LLM only writes prose around it.
+**Built, provider swapped.** Keep the deterministic builder — it produces the *facts block* (metrics + top-10 table) and stays completely unchanged. The LLM only writes the "Market Summary" prose (previously a hand-fill placeholder) around it.
 
-- `src/ai/client.ts` — Anthropic SDK, `claude-sonnet-5` for daily reports.
-- `src/ai/prompts/domain-sales.ts` — input is the JSON facts block, output is markdown with a fixed section structure.
-- Store `promptVersion` and `model` on the article so you can diff quality across prompt revisions and regenerate history after improving a prompt (this is exactly why raw data is stored separately).
-- Also worth adding here: a second LLM pass that re-extracts `company` / `amount` / `round` / `investors` from `funding_events.raw`, replacing the regex extractor.
-- Generated articles land as `DRAFT`. A human still flips them to `PUBLISHED`.
-- Guardrails: never let the model invent a number. Every figure in the prose must be present in the facts block; add a post-generation check that scans the markdown for `$` amounts not found in the input.
+- `src/ai/client.ts` — **NVIDIA NIM** (OpenAI-compatible, plain `fetch`, no SDK), not Anthropic — same provider and free `NVIDIA_API_KEY` as the main name.ai app's `free_tools/server/llm.js`, model `meta/llama-3.1-8b-instruct` by default (`TOOLS_LLM_MODEL` to override).
+- `src/ai/market-summary.ts` — one prompt builder parameterized by report type, not separate `domain-sales.ts`/`funding.ts` files (the two facts shapes are close enough that splitting them would just be duplicated prompt scaffolding). Every dollar figure in the facts is pre-formatted (`"$72,000"`, not `72000`) and the model is instructed to copy figures verbatim rather than recompute them — without this the model prints raw unformatted numbers (`28633.333333333332`) instead of natural prose; confirmed both by testing and by fixing it.
+- `promptVersion` and `model` are stored on the article, but inside `metrics.ai` (`{ model, promptVersion, generatedAt }`) rather than as dedicated Payload fields — avoids a schema migration for two rarely-queried strings; `metrics` is already the loose bag this project stores derived data in.
+- Re-extracting `company`/`amount`/`round`/`investors` from `funding_events.raw` via a second LLM pass (replacing the regex extractor) — **not built**, still open.
+- Generated articles land as `DRAFT`, unchanged. A human still flips them to `PUBLISHED`.
+- Guardrail: implemented as designed — extracts every `$` figure from the generated text and rejects the completion unless each one is within 3% (or $25, whichever is larger) of a real number in the facts block (aggregate stats and every individual top-10 entry, not just the top one). One retry at lower temperature on rejection, then falls back to the deterministic placeholder. Verified against 5 cases including an outright invented figure and an inflated total — both correctly rejected; a rounded real figure ("$85.9k" for $85,900) correctly accepted.
+- Any failure — no key, rate limit, guardrail rejection, or an unexpected error from the AI subsystem entirely — leaves the deterministic placeholder in place and never blocks the draft from saving. Tested explicitly: a zero-activity date skips the AI call outright (nothing to summarize) and metrics.ai is absent, confirming the skip path.
 
 ## 5. Phase 3 — Automation
 

@@ -3,6 +3,7 @@ import { getResolvedFundingByReportDate, getFundingStats } from "@/db/queries/fu
 import { formatUsd } from "@/lib/format";
 import { slugify } from "@/lib/slug";
 import type { BuiltReport } from "./domain-sales-report";
+import { MARKET_SUMMARY_PLACEHOLDER } from "./shared";
 
 /** Same contract as domain-sales-report.ts — see that file's doc comment. */
 export async function buildFundingReport(reportDate: Date): Promise<BuiltReport> {
@@ -44,7 +45,7 @@ export async function buildFundingReport(reportDate: Date): Promise<BuiltReport>
       : "_No raises to rank._",
     ``,
     `## Market Summary`,
-    `_Write the summary yourself — replace this placeholder before publishing. See docs/PLAN.md § 3.8._`,
+    MARKET_SUMMARY_PLACEHOLDER,
   ].join("\n");
 
   return {
@@ -60,5 +61,11 @@ export async function buildFundingReport(reportDate: Date): Promise<BuiltReport>
         ? { company: stats.topRaise.company, amount: Number(stats.topRaise.amountUsd) }
         : null,
     },
+    topEntries: top10.map((r) => ({
+      company: r.company,
+      amount: r.amountUsd !== null ? Number(r.amountUsd) : null,
+      round: r.round,
+      investors: r.investors,
+    })),
   };
 }

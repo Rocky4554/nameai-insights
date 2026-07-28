@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { getSalesByReportDate, getSalesStats } from "@/db/queries/domain-sales";
 import { formatUsd } from "@/lib/format";
 import { slugify } from "@/lib/slug";
+import { MARKET_SUMMARY_PLACEHOLDER } from "./shared";
 
 export interface BuiltReport {
   slug: string;
@@ -9,6 +10,8 @@ export interface BuiltReport {
   summary: string;
   markdown: string;
   metrics: Record<string, unknown>;
+  /** Top-10 rows, exposed so an optional AI pass (src/ai/market-summary.ts) can ground prose in named entities without a second query. Not part of the rendered output. */
+  topEntries: Array<Record<string, unknown>>;
 }
 
 /**
@@ -55,7 +58,7 @@ export async function buildDomainSalesReport(reportDate: Date): Promise<BuiltRep
       : "_No sales to rank._",
     ``,
     `## Market Summary`,
-    `_Write the summary yourself — replace this placeholder before publishing. See docs/PLAN.md § 3.8._`,
+    MARKET_SUMMARY_PLACEHOLDER,
   ].join("\n");
 
   return {
@@ -71,5 +74,10 @@ export async function buildDomainSalesReport(reportDate: Date): Promise<BuiltRep
         ? { domain: stats.topSale.domain, price: Number(stats.topSale.priceUsd) }
         : null,
     },
+    topEntries: top10.map((s) => ({
+      domain: s.domain,
+      price: Number(s.priceUsd),
+      marketplace: s.marketplace,
+    })),
   };
 }
