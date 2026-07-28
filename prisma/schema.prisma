@@ -82,3 +82,14 @@ model ApiUsage {
   @@unique([provider, period])
   @@map("api_usage")
 }
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique // stored lowercased, so the index dedupes case variants
+  source    String? // which page the signup came from, e.g. "/insights/ai-funding-2026-07-20"
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@map("subscribers")
+}
