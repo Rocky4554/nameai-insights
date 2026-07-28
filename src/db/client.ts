@@ -5,9 +5,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
+const databaseUrl = process.env.DATABASE_URL!;
+const schema = new URL(databaseUrl).searchParams.get("schema") ?? undefined;
+
+const adapter = new PrismaPg({ connectionString: databaseUrl }, schema ? { schema } : undefined);
 
 export const prisma =
   globalForPrisma.prisma ??

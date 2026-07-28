@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { prisma } from "@/db/client";
 import { fetchAllDomainSales } from "@/services/domain-sales";
 import { fetchAllFunding } from "@/services/funding";

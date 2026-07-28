@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { buildDomainSalesReport } from "@/reports/domain-sales-report";
 import { buildFundingReport } from "@/reports/funding-report";
 import { upsertDraftArticle } from "@/lib/payload-client";
