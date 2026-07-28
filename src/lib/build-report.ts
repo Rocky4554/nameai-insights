@@ -30,7 +30,7 @@ export async function buildAndSaveReport(type: ArticleType, date: Date): Promise
     };
   }
 
-  return upsertDraftArticle({
+  const article = await upsertDraftArticle({
     slug: built.slug,
     title: built.title,
     type,
@@ -39,4 +39,10 @@ export async function buildAndSaveReport(type: ArticleType, date: Date): Promise
     contentMd: markdown,
     metrics,
   });
+
+  console.log(
+    `[build-report] report generated: ${type} — ${article.slug} (id: ${article.id}, status: ${article._status}, aiSummary: ${aiSummary ? "yes" : "no"})`,
+  );
+
+  return article;
 }

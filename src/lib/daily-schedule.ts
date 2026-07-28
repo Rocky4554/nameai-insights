@@ -53,7 +53,7 @@ function nextRunAt(from: Date): Date {
 
 async function runDailyReports() {
   const date = new Date();
-  console.log(`[daily-schedule] starting daily run for ${date.toISOString()}`);
+  console.log(`[daily-schedule] === CRON FIRED — daily run starting at ${date.toISOString()} ===`);
 
   // Each step is independent: a funding-source outage shouldn't block the
   // domain-sales report (or vice versa), and the build steps run off
@@ -65,13 +65,21 @@ async function runDailyReports() {
     ["build funding report", () => buildAndSaveReport("funding", date)],
   ];
 
+  const failed: string[] = [];
   for (const [label, run] of steps) {
     try {
       await run();
     } catch (err) {
-      console.error(`[daily-schedule] ${label} failed:`, err);
+      failed.push(label);
+      console.error(`[daily-schedule] FAILED: ${label} —`, err);
     }
   }
 
-  console.log("[daily-schedule] daily run complete");
+  if (failed.length === 0) {
+    console.log(`[daily-schedule] === daily run complete — ${steps.length}/${steps.length} steps succeeded ===`);
+  } else {
+    console.error(
+      `[daily-schedule] === daily run complete with failures — ${steps.length - failed.length}/${steps.length} succeeded, failed: ${failed.join(", ")} ===`,
+    );
+  }
 }
