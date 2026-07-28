@@ -92,12 +92,13 @@ export function ReportArtwork({ article }: { article: PayloadArticle }) {
       <circle cx="220" cy="250" r="5" fill="#1B4332" />
       <circle cx="405" cy="162" r="5" fill="#1B4332" />
       <circle cx="528" cy="96" r="6.5" fill="#1B4332" />
-      {/* Kept well inside the horizontal crop: the 540-wide viewBox is sliced
-          down to roughly 68..472 at the card's aspect ratio. */}
+      {/* The 540-wide viewBox is centre-cropped to the card's width, and the
+          card narrows with the viewport — so this stays near the middle to
+          survive the tightest crop rather than hugging the right edge. */}
       {topLabel ? (
         <text
-          x="424"
-          y="120"
+          x="356"
+          y="150"
           fill="#1B4332"
           fontFamily="Inter, sans-serif"
           fontSize="11"

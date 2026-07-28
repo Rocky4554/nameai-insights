@@ -82,7 +82,7 @@ export default async function ArticlePage({ params }: { params: Promise<PagePara
           </span>
         </div>
 
-        <h1 className="font-display text-3xl font-bold leading-[1.2] tracking-[-0.025em] text-zinc-900 text-pretty">
+        <h1 className="font-display text-2xl font-bold leading-[1.2] tracking-[-0.025em] text-zinc-900 text-pretty sm:text-3xl">
           {article.title}
         </h1>
 
@@ -101,11 +101,11 @@ export default async function ArticlePage({ params }: { params: Promise<PagePara
             {stats.map((stat, i) => (
               <div
                 key={stat.label}
-                className={`bg-sage-200/60 px-3 py-4 text-center ${
+                className={`bg-sage-200/60 px-2 py-4 text-center sm:px-3 ${
                   i === 1 ? "border-x border-zinc-200" : ""
                 }`}
               >
-                <div className="font-display text-2xl font-bold leading-none text-green-700">
+                <div className="font-display text-lg font-bold leading-none text-green-700 sm:text-2xl">
                   {stat.value}
                 </div>
                 <div className="mt-1.5 text-[10px] uppercase tracking-[0.07em] text-zinc-500">

@@ -10,11 +10,11 @@ export function ReportRow({ article }: { article: PayloadArticle }) {
   return (
     <Link
       href={`/insights/${article.slug}`}
-      className="flex items-center gap-3.5 border-b border-zinc-200 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-zinc-50"
+      className="flex items-center gap-3 border-b border-zinc-200 bg-white px-4 py-4 transition-colors last:border-b-0 hover:bg-zinc-50 sm:gap-3.5 sm:px-5"
     >
       {/* Left rail carries the report's headline number rather than a vote
           score — this blog has no voting, and a real metric fills the slot. */}
-      <div className="flex min-w-[52px] flex-shrink-0 flex-col items-center gap-0.5">
+      <div className="flex min-w-13 shrink-0 flex-col items-center gap-0.5">
         <span className="font-display text-[15px] font-bold leading-none text-green-700">
           {stat?.value ?? "—"}
         </span>
@@ -41,7 +41,10 @@ export function ReportRow({ article }: { article: PayloadArticle }) {
         </div>
       </div>
 
-      <ReportThumbnail article={article} />
+      {/* Decorative only — dropped on narrow screens so the title keeps its width. */}
+      <div className="hidden sm:block">
+        <ReportThumbnail article={article} />
+      </div>
     </Link>
   );
 }

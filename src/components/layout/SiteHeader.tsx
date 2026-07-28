@@ -14,8 +14,8 @@ export function SiteHeader({
 }) {
   return (
     <header className="border-b border-zinc-200 bg-white">
-      <div className="flex h-15 items-center gap-6 px-5 py-3 sm:gap-8 sm:px-8">
-        <Link href="/" className="flex flex-shrink-0 items-center gap-2.5">
+      <div className="flex items-center gap-3 px-4 py-3 sm:h-15 sm:gap-8 sm:px-8">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span className="flex h-7 w-7 items-center justify-center bg-green-700">
             <span className="h-2.5 w-2.5 rounded-full bg-sage-200" />
           </span>
@@ -32,7 +32,7 @@ export function SiteHeader({
                 key={item.key}
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
-                className={`whitespace-nowrap border-b-2 px-4 py-2 text-sm transition-colors ${
+                className={`whitespace-nowrap border-b-2 px-2.5 py-2 text-[13px] transition-colors sm:px-4 sm:text-sm ${
                   isActive
                     ? "border-green-700 font-semibold text-green-700"
                     : "border-transparent text-zinc-500 hover:text-zinc-800"
@@ -44,11 +44,11 @@ export function SiteHeader({
           })}
         </nav>
 
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/archive"
             aria-label="Search reports"
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 transition-colors hover:bg-zinc-100"
+            className="hidden h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 transition-colors hover:bg-zinc-100 sm:flex"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
