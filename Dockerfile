@@ -7,14 +7,19 @@ FROM node:22.17.0-alpine AS base
 
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
-# node:22.17.0-alpine ships npm 10.9.2; package-lock.json is generated with
-# npm 11.x locally. That version skew produces phantom "out of sync" errors
-# on optional dependencies (@emnapi/* etc.) that a plain lockfile refresh
-# doesn't fix -- matching the npm version is the actual fix.
-RUN npm install -g npm@11
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+# npm ci, not npm install, would be preferable for reproducibility -- but
+# package-lock.json is generated on Windows, and npm resolves optional
+# platform-specific packages differently per OS. The wasm32-wasi fallback
+# builds of native deps (@img/sharp-wasm32 from Next.js's optional image
+# optimization, @tailwindcss/oxide-wasm32-wasi from Tailwind v4's Rust
+# engine, @unrs/resolver-binding-wasm32-wasi from ESLint's resolver) keep
+# coming out incompletely captured for Linux even after a full relock --
+# confirmed twice, npm ci failing identically both times. npm install
+# re-resolves whatever's actually missing at build time instead of
+# requiring the lockfile to already have perfect Linux/musl coverage.
+RUN npm install
 
 FROM base AS builder
 WORKDIR /app
