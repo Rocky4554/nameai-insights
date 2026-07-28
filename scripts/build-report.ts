@@ -1,8 +1,5 @@
 import "dotenv/config";
-import { buildDomainSalesReport } from "@/reports/domain-sales-report";
-import { buildFundingReport } from "@/reports/funding-report";
-import { upsertDraftArticle } from "@/lib/payload-client";
-import { format } from "date-fns";
+import { buildAndSaveReport } from "@/lib/build-report";
 
 /** Usage: tsx scripts/build-report.ts --type=domain-sales|funding --date=YYYY-MM-DD */
 
@@ -26,17 +23,7 @@ async function main() {
     return;
   }
 
-  const built = type === "domain-sales" ? await buildDomainSalesReport(date) : await buildFundingReport(date);
-
-  const article = await upsertDraftArticle({
-    slug: built.slug,
-    title: built.title,
-    type,
-    reportDate: format(date, "yyyy-MM-dd"),
-    summary: built.summary,
-    contentMd: built.markdown,
-    metrics: built.metrics,
-  });
+  const article = await buildAndSaveReport(type, date);
 
   console.log(`Draft article created in Payload: ${article.slug} (id: ${article.id})`);
   console.log(`Edit the summary in the CMS admin, then publish it there.`);

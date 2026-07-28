@@ -33,7 +33,7 @@ These differ from most Next.js material you'll find online:
 6. `cacheLife` / `cacheTag` are stable — import from `next/cache` without the `unstable_` prefix.
 7. Node.js **20.9+** required.
 
-> **Caching decision for this project:** do **not** enable `cacheComponents` in Phase 1. Use the classic model (`export const revalidate`, `revalidatePath`, `dynamicParams`) documented in `node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md`. Revisit in Phase 3 when the cron job exists — then `use cache` + `cacheTag('articles')` + `revalidateTag('articles', 'max')` from the cron route becomes the clean design.
+> **Caching decision for this project:** do **not** enable `cacheComponents` in Phase 1. Use the classic model (`export const revalidate`, `revalidatePath`, `dynamicParams`) documented in `node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md`. This stayed the right call even after Phase 3/4 landed: article reads go through Payload's API (`force-dynamic` pages + `fetch`'s own `next: { revalidate }`, not a local cache to invalidate) — see § 5.
 
 ---
 
@@ -84,8 +84,7 @@ src/
       articles/[slug]/route.ts   # GET one
       domain-sales/route.ts      # GET raw sales (filters)
       funding/route.ts           # GET raw funding
-      cron/ingest/route.ts       # Phase 3, secret-protected
-      cron/publish/route.ts      # Phase 3
+    # Phase 3 automation is an in-process scheduler instead — see § 5, no cron/ routes
   components/
     ui/            # Button, Card, Badge, Table, Prose
     insights/      # ArticleCard, SalesTable, FundingTable, StatTile, TypeFilter
@@ -140,7 +139,6 @@ mkdir src && git mv app src/app
 DATABASE_URL="postgresql://postgres.PROJECT:PASS@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
 # Direct connection (port 5432) — used by prisma migrate / db push only
 DIRECT_URL="postgresql://postgres.PROJECT:PASS@aws-0-REGION.pooler.supabase.com:5432/postgres"
-CRON_SECRET="…"          # Phase 3
 ```
 Both are required. Prisma's migration engine cannot run through PgBouncer; the app must not use the direct connection or you will exhaust Supabase connections on a serverless host.
 
@@ -434,13 +432,15 @@ Keep the deterministic builder — it produces the *facts block* (metrics + top-
 
 ## 5. Phase 3 — Automation
 
-`POST /api/cron/ingest` and `POST /api/cron/publish`, both gated on `Authorization: Bearer ${CRON_SECRET}` compared with `timingSafeEqual`. Never `GET`, never unauthenticated.
+**Built, but not as originally planned above.** Rather than HTTP cron routes triggered by an external scheduler, `src/instrumentation.ts` starts an in-process daily timer (`src/lib/daily-schedule.ts`) when the Next.js server boots — no cron library, no external scheduler dependency, no `CRON_SECRET`/`vercel.json`/GitHub Actions. Runs once daily at **08:00 IST**, computed against IST's fixed UTC+5:30 offset (no DST to account for) and self-rescheduled via `setTimeout` after each run.
 
-Scheduler options: Vercel Cron (`vercel.json`, simplest if you host there) · GitHub Actions on a schedule hitting the endpoint · Supabase `pg_cron` + `pg_net`.
+This only works because the app is self-hosted as a long-running container (Coolify), not serverless — a persistent process is exactly what an in-process timer needs, and exactly what the original Vercel-Cron-shaped design was written for a different hosting assumption. Only starts when `NODE_ENV=production` (the deployed container), so `next dev` never fires it.
 
-Schedule: 05:30 ingest → 06:00 generate → 06:15 publish. Log each run to `ingest_runs`; alert on two consecutive failures.
+Each run: ingest domain-sales → ingest funding → build domain-sales draft → build funding draft, each step independently try/caught so one source's outage doesn't block the others. Logged to `ingest_runs`, same as manual runs via `scripts/ingest.ts`.
 
-This is the point to enable `cacheComponents: true`, wrap the query helpers in `use cache` + `cacheTag('articles')`, and call `revalidateTag('articles', 'max')` from the publish route.
+**Publish stayed manual, deliberately** — the run only creates/updates DRAFT articles in Payload (same `buildAndSaveReport` used by `scripts/build-report.ts`), same as the Phase 2 rule ("Generated articles land as DRAFT. A human still flips them to PUBLISHED."). The single-daily-run design collapses the originally separate ingest/generate/publish stages into one step, but auto-publish was never part of that rule and still isn't — a human reviews and publishes from the Payload admin.
+
+`cacheComponents: true` / `use cache` / `revalidateTag('articles')` is moot now — article reads already go through Payload's own API (see the CMS integration commit), not a local `use cache`-wrapped query layer, so there's no local cache to invalidate from a publish route that no longer exists.
 
 ## 6. Phase 4 — CMS (Payload)
 
