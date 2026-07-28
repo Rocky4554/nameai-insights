@@ -6,14 +6,15 @@ import { subscribe, type SubscribeState } from "@/lib/actions/subscribe";
 
 const INITIAL_STATE: SubscribeState = { status: "idle" };
 
-export function NewsletterBand() {
+/** `className` carries the surrounding margin, which differs per page. */
+export function NewsletterBand({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   const [state, formAction, pending] = useActionState(subscribe, INITIAL_STATE);
 
   return (
     <section
       id="subscribe"
-      className="mb-7 flex flex-col gap-5 rounded-[10px] bg-green-700 px-5 py-6 sm:px-8 sm:py-7 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
+      className={`flex flex-col gap-5 rounded-[10px] bg-green-700 px-5 py-6 sm:px-8 sm:py-7 lg:flex-row lg:items-center lg:justify-between lg:gap-8 ${className}`}
     >
       <div className="min-w-0 flex-1">
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-sage-200/60">

@@ -6,6 +6,7 @@ import {
 } from "@/lib/payload-client";
 import { PageShell } from "@/components/layout/PageShell";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { NewsletterBand } from "@/components/layout/NewsletterBand";
 import { ReportList } from "./ReportRow";
 
 const PAGE_SIZE = 15;
@@ -80,6 +81,8 @@ export async function ReportListingPage({
           )}
         </div>
       )}
+
+      <NewsletterBand className="mt-9" />
     </PageShell>
   );
 }

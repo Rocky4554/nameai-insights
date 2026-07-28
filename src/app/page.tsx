@@ -40,7 +40,7 @@ export default async function HomePage() {
 
       <div className="mb-7 h-px bg-zinc-200" />
 
-      <NewsletterBand />
+      <NewsletterBand className="mb-7" />
 
       <div className="mb-4 flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-600">

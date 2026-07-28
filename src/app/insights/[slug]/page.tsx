@@ -14,6 +14,7 @@ import { SalesTable } from "@/components/insights/SalesTable";
 import { FundingTable } from "@/components/insights/FundingTable";
 import { PageShell } from "@/components/layout/PageShell";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { NewsletterBand } from "@/components/layout/NewsletterBand";
 import {
   TYPE_LABEL,
   formatReportDate,
@@ -136,6 +137,8 @@ export default async function ArticlePage({ params }: { params: Promise<PagePara
             )}
           </div>
         </section>
+
+        <NewsletterBand className="mt-10" />
       </article>
     </PageShell>
   );
