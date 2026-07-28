@@ -10,7 +10,8 @@ import { DomainSaleDTO, type SalesFetcher } from "./types";
  */
 
 const CSV_PATH =
-  process.env.DOMAIN_SALES_CSV_PATH ?? path.join(process.cwd(), "data", "domain-sales-manual.csv");
+  process.env.DOMAIN_SALES_CSV_PATH ??
+  path.join(/* turbopackIgnore: true */ process.cwd(), "data", "domain-sales-manual.csv");
 
 function parseCsvLine(line: string): string[] {
   return line.split(",").map((cell) => cell.trim().replace(/^"|"$/g, ""));
