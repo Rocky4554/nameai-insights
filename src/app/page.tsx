@@ -1,115 +1,63 @@
 import Link from "next/link";
-import { getLatestByType, getRecentPublishedArticles } from "@/lib/payload-client";
-import { ArticleCard } from "@/components/insights/ArticleCard";
-import { StatTile } from "@/components/insights/StatTile";
-import { formatUsd } from "@/lib/format";
+import {
+  getArticleCounts,
+  getPublishedArticlePage,
+} from "@/lib/payload-client";
+import { PageShell } from "@/components/layout/PageShell";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { NewsletterBand } from "@/components/layout/NewsletterBand";
+import { FeaturedCarousel } from "@/components/reports/FeaturedCarousel";
+import { FeaturedCard } from "@/components/reports/FeaturedCard";
+import { ReportList } from "@/components/reports/ReportRow";
 
 export const dynamic = "force-dynamic";
 
-interface DomainSalesMetrics {
-  count: number;
-  totalVolume: number;
-  avgPrice: number;
-  topSale: { domain: string; price: number } | null;
-}
-
-interface FundingMetrics {
-  count: number;
-  totalVolume: number;
-  avgAmount: number;
-  topRaise: { company: string; amount: number } | null;
-}
+const FEATURED_COUNT = 5;
+const LATEST_COUNT = 12;
 
 export default async function HomePage() {
-  const [latestSales, latestFunding, recent] = await Promise.all([
-    getLatestByType("domain-sales"),
-    getLatestByType("funding"),
-    getRecentPublishedArticles(6),
+  const [featuredPage, latestPage, counts] = await Promise.all([
+    getPublishedArticlePage({ pageSize: FEATURED_COUNT }),
+    getPublishedArticlePage({ pageSize: LATEST_COUNT }),
+    getArticleCounts(),
   ]);
 
-  const salesMetrics = latestSales?.metrics as unknown as DomainSalesMetrics | undefined;
-  const fundingMetrics = latestFunding?.metrics as unknown as FundingMetrics | undefined;
+  const featured = featuredPage.docs;
+  const latest = latestPage.docs;
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <section>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Daily intelligence on .AI domains and AI startup funding
-        </h1>
-        <p className="mt-3 max-w-2xl text-neutral-600 dark:text-neutral-400">
-          Every day: the biggest .ai domain sales and the latest AI startup funding rounds,
-          backed by raw data you can dig into yourself.
-        </p>
-      </section>
-
-      {(salesMetrics?.topSale || fundingMetrics?.topRaise) && (
-        <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {salesMetrics?.topSale && (
-            <StatTile
-              label="Latest Top Sale"
-              value={formatUsd(salesMetrics.topSale.price)}
-              sublabel={salesMetrics.topSale.domain}
-            />
-          )}
-          {fundingMetrics?.topRaise && (
-            <StatTile
-              label="Latest Top Raise"
-              value={formatUsd(fundingMetrics.topRaise.amount)}
-              sublabel={fundingMetrics.topRaise.company}
-            />
-          )}
-          {salesMetrics && (
-            <StatTile
-              label="Sales Tracked"
-              value={String(salesMetrics.count)}
-              sublabel={`${formatUsd(salesMetrics.totalVolume)} total volume`}
-            />
-          )}
-        </section>
-      )}
-
-      <section className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-            Latest Domain Sales Report
-          </h2>
-          <div className="mt-3">
-            {latestSales ? (
-              <ArticleCard article={latestSales} />
-            ) : (
-              <p className="text-sm text-neutral-500">No domain sales report published yet.</p>
-            )}
-          </div>
-        </div>
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-            Latest Funding Report
-          </h2>
-          <div className="mt-3">
-            {latestFunding ? (
-              <ArticleCard article={latestFunding} />
-            ) : (
-              <p className="text-sm text-neutral-500">No funding report published yet.</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-12">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-            Recent Reports
-          </h2>
-          <Link href="/insights" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-            View all →
-          </Link>
-        </div>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recent.map((article) => (
-            <ArticleCard key={article.id} article={article} />
+    <PageShell
+      active="reports"
+      sidebar={<Sidebar counts={counts} recent={latest} />}
+    >
+      {featured.length > 0 ? (
+        <FeaturedCarousel count={featured.length}>
+          {featured.map((article) => (
+            <FeaturedCard key={article.id} article={article} />
           ))}
-        </div>
-      </section>
-    </div>
+        </FeaturedCarousel>
+      ) : null}
+
+      <div className="mb-7 h-px bg-zinc-200" />
+
+      <NewsletterBand />
+
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-600">
+          Latest Reports
+        </span>
+        <Link
+          href="/archive"
+          className="text-xs text-zinc-500 transition-colors hover:text-green-700"
+        >
+          View all →
+        </Link>
+      </div>
+
+      <ReportList
+        articles={latest}
+        emptyMessage="No reports published yet. Generate one with scripts/build-report.ts, then publish it in the CMS."
+      />
+    </PageShell>
   );
 }

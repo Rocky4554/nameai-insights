@@ -3,8 +3,24 @@ const PAYLOAD_API_KEY = process.env.PAYLOAD_API_KEY;
 
 export type ArticleType = "domain-sales" | "funding";
 
+/** Shape written by src/reports/domain-sales-report.ts. */
+export interface DomainSalesMetrics {
+  count: number;
+  totalVolume: number;
+  avgPrice: number;
+  topSale: { domain: string; price: number } | null;
+}
+
+/** Shape written by src/reports/funding-report.ts. */
+export interface FundingMetrics {
+  count: number;
+  totalVolume: number;
+  avgAmount: number;
+  topRaise: { company: string; amount: number } | null;
+}
+
 export interface PayloadArticle {
-  id: string;
+  id: number;
   slug: string;
   title: string;
   type: ArticleType;
@@ -21,6 +37,25 @@ interface PayloadListResponse {
   totalDocs: number;
   page: number;
   totalPages: number;
+  hasNextPage: boolean;
+}
+
+export interface ArticlePage {
+  docs: PayloadArticle[];
+  totalDocs: number;
+  hasNextPage: boolean;
+}
+
+export function domainSalesMetrics(article: PayloadArticle): DomainSalesMetrics | null {
+  return article.type === "domain-sales"
+    ? (article.metrics as unknown as DomainSalesMetrics | null)
+    : null;
+}
+
+export function fundingMetrics(article: PayloadArticle): FundingMetrics | null {
+  return article.type === "funding"
+    ? (article.metrics as unknown as FundingMetrics | null)
+    : null;
 }
 
 function authHeaders(): HeadersInit {
@@ -28,24 +63,42 @@ function authHeaders(): HeadersInit {
   return { Authorization: `users API-Key ${PAYLOAD_API_KEY}` };
 }
 
-/** Public read — only ever returns published articles (Payload hides drafts unless `draft=true` is passed). */
-export async function getPublishedArticles(
-  options: { type?: ArticleType; page?: number; pageSize?: number } = {},
-): Promise<PayloadArticle[]> {
-  const { type, page = 1, pageSize = 20 } = options;
-  const params = new URLSearchParams({
-    limit: String(pageSize),
-    page: String(page),
-    sort: "-publishedAt",
-  });
-  if (type) params.set("where[type][equals]", type);
-
+async function fetchArticles(params: URLSearchParams): Promise<ArticlePage> {
   const res = await fetch(`${PAYLOAD_API_URL}/api/articles?${params.toString()}`, {
-    next: { revalidate: 3600 },
+    next: { revalidate: 300 },
   });
   if (!res.ok) throw new Error(`Payload articles fetch failed: ${res.status}`);
   const data = (await res.json()) as PayloadListResponse;
-  return data.docs;
+  return { docs: data.docs, totalDocs: data.totalDocs, hasNextPage: data.hasNextPage };
+}
+
+/**
+ * Public read — Payload only returns published docs unless `draft=true` is
+ * passed with credentials, so drafts stay invisible to the blog.
+ */
+export async function getPublishedArticlePage(
+  options: {
+    type?: ArticleType;
+    page?: number;
+    pageSize?: number;
+    sort?: "-publishedAt" | "publishedAt" | "-reportDate" | "reportDate";
+  } = {},
+): Promise<ArticlePage> {
+  const { type, page = 1, pageSize = 20, sort = "-publishedAt" } = options;
+  const params = new URLSearchParams({
+    limit: String(pageSize),
+    page: String(page),
+    sort,
+  });
+  if (type) params.set("where[type][equals]", type);
+  return fetchArticles(params);
+}
+
+export async function getPublishedArticles(
+  options: { type?: ArticleType; page?: number; pageSize?: number } = {},
+): Promise<PayloadArticle[]> {
+  const { docs } = await getPublishedArticlePage(options);
+  return docs;
 }
 
 export async function getRecentPublishedArticles(limit = 6): Promise<PayloadArticle[]> {
@@ -57,17 +110,31 @@ export async function getLatestByType(type: ArticleType): Promise<PayloadArticle
   return articles[0] ?? null;
 }
 
+/** Published totals per type, for the sidebar category counts. */
+export async function getArticleCounts(): Promise<{
+  all: number;
+  "domain-sales": number;
+  funding: number;
+}> {
+  const [all, sales, funding] = await Promise.all([
+    getPublishedArticlePage({ pageSize: 1 }),
+    getPublishedArticlePage({ type: "domain-sales", pageSize: 1 }),
+    getPublishedArticlePage({ type: "funding", pageSize: 1 }),
+  ]);
+  return {
+    all: all.totalDocs,
+    "domain-sales": sales.totalDocs,
+    funding: funding.totalDocs,
+  };
+}
+
 export async function getPublishedArticleBySlug(slug: string): Promise<PayloadArticle | null> {
   const params = new URLSearchParams({
     "where[slug][equals]": slug,
     limit: "1",
   });
-  const res = await fetch(`${PAYLOAD_API_URL}/api/articles?${params.toString()}`, {
-    next: { revalidate: 3600 },
-  });
-  if (!res.ok) throw new Error(`Payload article fetch failed: ${res.status}`);
-  const data = (await res.json()) as PayloadListResponse;
-  return data.docs[0] ?? null;
+  const { docs } = await fetchArticles(params);
+  return docs[0] ?? null;
 }
 
 export interface UpsertArticleInput {
@@ -122,7 +189,7 @@ export async function upsertDraftArticle(input: UpsertArticleInput): Promise<Pay
 }
 
 /** Flips an article's status to published (stamps publishedAt via the collection's beforeChange hook). */
-export async function publishArticle(id: string): Promise<PayloadArticle> {
+export async function publishArticle(id: number): Promise<PayloadArticle> {
   if (!PAYLOAD_API_KEY) {
     throw new Error("PAYLOAD_API_KEY is not set — required to publish articles in Payload.");
   }
